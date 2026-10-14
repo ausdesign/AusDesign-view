@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-FRybX6uwRWtcxnzdNKsC9OkFlMFzwwClIL9uzgancWI='; style-src 'unsafe-inline'; connect-src https://script.google.com https://script.googleusercontent.com; worker-src blob: https://cdnjs.cloudflare.com; img-src blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-Z7QLOCOTcfLC7rqwchlnx5LNTJTqGMgAjB/wcBSJZhk='; style-src 'unsafe-inline'; connect-src https://script.google.com https://script.googleusercontent.com; worker-src blob: https://cdnjs.cloudflare.com; img-src blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>공사 계약서 서명</title>
 <style>
 *{box-sizing:border-box}body{font-family:system-ui,sans-serif;margin:0;padding:12px;background:#f5f5f5;color:#182535}h2{margin:6px 0 10px;font-size:20px}
@@ -98,7 +98,11 @@ async function send() {
     const r = await res.json();
     m.textContent = (r && typeof r.msg === 'string') ? r.msg : '저장 결과를 확인해 주세요.';
     if (!r || r.ok !== true) btn.disabled = false;
-    else { $('nm').disabled = true; $('idno').disabled = true; $('ag').disabled = true; $('clr').disabled = true; cv.style.pointerEvents = 'none'; }
+    else {
+      $('nm').disabled = true; $('idno').disabled = true; $('ag').disabled = true; $('clr').disabled = true; cv.style.pointerEvents = 'none';
+      // 서명 저장 후 서명본 계약서 만들기를 따로 요청(고객은 기다리지 않음, 실패해도 서버 점검이 다시 함)
+      fetch(API_BASE, { method: 'POST', body: new URLSearchParams({ a: 'kick', t: token }), keepalive: true, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' }).catch(() => {});
+    }
   } catch (_) {
     // 응답을 못 받으면 자동으로 다시 보내지 않음(중복 방지). 저장 여부는 담당자가 확인
     m.textContent = '저장 결과를 확인할 수 없습니다. 담당자에게 문의해 주세요.';
