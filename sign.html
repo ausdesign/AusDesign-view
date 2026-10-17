@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-Z7QLOCOTcfLC7rqwchlnx5LNTJTqGMgAjB/wcBSJZhk='; style-src 'unsafe-inline'; connect-src https://script.google.com https://script.googleusercontent.com; worker-src blob: https://cdnjs.cloudflare.com; img-src blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-++5kqoztQdLAAo3Rac3hOV7FN/N/NQpwTzNfmkmD9JM='; style-src 'unsafe-inline'; connect-src https://script.google.com https://script.googleusercontent.com; worker-src blob: https://cdnjs.cloudflare.com; img-src blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>공사 계약서 서명</title>
 <style>
 *{box-sizing:border-box}body{font-family:system-ui,sans-serif;margin:0;padding:12px;background:#f5f5f5;color:#182535}h2{margin:6px 0 10px;font-size:20px}
@@ -62,7 +62,7 @@ async function showPdf(b64) {
     if (String.fromCharCode(...arr.subarray(0, 5)) !== '%PDF-') throw new Error();
     await loadPdfJs();
     pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER;
-    const doc = await pdfjsLib.getDocument({ data: arr, isEvalSupported: false, useSystemFonts: true }).promise;
+    const doc = await pdfjsLib.getDocument({ data: arr, isEvalSupported: false, useSystemFonts: true, disableFontFace: true }).promise;
     msg.textContent = '계약서 ' + doc.numPages + '쪽 — 아래로 넘기며 확인해 주세요.';
     const box = $('pdfbox');
     for (let n = 1; n <= doc.numPages; n++) {
