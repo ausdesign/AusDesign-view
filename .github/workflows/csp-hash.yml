@@ -1,0 +1,13 @@
+name: CSP script hash
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  csp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check inline script hashes and rejection cases
+        run: node tests/csp-hash.test.cjs
