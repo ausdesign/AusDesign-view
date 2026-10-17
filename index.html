@@ -62,6 +62,21 @@ saveButton.addEventListener('click', () => {
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 });
+// 고객 열람 확인(서버가 viewRead 를 줄 때만 동작). 첫 쪽 표시 + 화면 보임 + 손님 조작 후 1회만 알림. 실패해도 문서·서명에 영향 없음
+function viewReadInstall(cfg, tok) {
+  if (!cfg || typeof cfg.ticket !== 'string' || !cfg.ticket) return { rendered() {} };
+  let sent = false, rendered = false, touched = false;
+  const bot = /bot|crawler|spider|preview|facebookexternalhit|kakaotalk-scrap/i.test(navigator.userAgent || '');
+  const send = () => {
+    if (sent || bot || !rendered || !touched || document.visibilityState !== 'visible') return;
+    sent = true;
+    try { fetch(API_BASE, { method: 'POST', body: JSON.stringify({ a: 'viewread', token: tok, ticket: cfg.ticket, rendered: true, visible: true, interacted: true, bot: false }), keepalive: true, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' }).catch(() => {}); } catch (_) {}
+  };
+  const touch = e => { if (e.isTrusted) { touched = true; send(); } };
+  ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(k => document.addEventListener(k, touch, { passive: true }));
+  document.addEventListener('visibilitychange', send);
+  return { rendered() { rendered = true; send(); } };
+}
 async function openDocument() {
   const values = new URLSearchParams(window.location.search).getAll('v');
   if (values.length !== 1 || !/^[a-f0-9]{64}$/.test(values[0])) { showError(); return; }
@@ -80,6 +95,7 @@ async function openDocument() {
     const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
     if (String.fromCharCode(...bytes.subarray(0, 5)) !== '%PDF-') throw new Error();
     clearTimeout(timeout);
+    const viewRead = viewReadInstall(data.viewRead, values[0]);
     await loadPdfJs();
     pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER;
     // PDF 내 외부 링크·스크립트·폰트 네트워크 로딩을 사용하지 않습니다.
@@ -110,6 +126,7 @@ async function openDocument() {
       pagesElement.appendChild(figure);
       await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
       page.cleanup();
+      if (number === 1) viewRead.rendered();
     }
     pdfBytes = bytes;
     saveButton.disabled = false;
