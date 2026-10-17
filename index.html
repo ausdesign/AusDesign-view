@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-oP9dqdsPdWYiIpCPsfiqU5jpv3nHG8/TlzojwqZmAF8='; style-src 'unsafe-inline'; connect-src https://script.google.com https://script.googleusercontent.com; worker-src blob: https://cdnjs.cloudflare.com; img-src blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-p6yKdXWi/g986Kg6lpOiOHd6ZQ3roUnPRfhI/gWfjlg='; style-src 'unsafe-inline'; connect-src https://script.google.com https://script.googleusercontent.com; worker-src blob: https://cdnjs.cloudflare.com; img-src blob: data:; base-uri 'none'; form-action 'none'; object-src 'none'">
 <title>문서 열람</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#edf0f3;color:#182535;font-family:system-ui,sans-serif}header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px max(16px,env(safe-area-inset-right));background:#fff;border-bottom:1px solid #d9e0e7}h1{font-size:18px;margin:0;overflow-wrap:anywhere}button{flex-shrink:0;min-height:44px;padding:10px 18px;border:0;border-radius:8px;background:#244b68;color:#fff;font:inherit;font-weight:600;cursor:pointer}button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:3px solid #e59b29;outline-offset:3px}main{max-width:1000px;margin:auto;padding:20px 12px 40px}#status{padding:36px 14px;text-align:center;line-height:1.8;overflow-wrap:anywhere}.sheet{margin:0 auto 20px;max-width:100%}.sheet canvas{display:block;width:100%;height:auto;background:#fff;box-shadow:0 2px 12px #18253518}.sheet figcaption{text-align:center;font-size:12px;color:#536578;padding:8px}[hidden]{display:none!important}@media(max-width:480px){header{padding:12px}h1{font-size:16px}main{padding:14px 8px 28px}button{padding:10px 14px}}
@@ -62,6 +62,21 @@ saveButton.addEventListener('click', () => {
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
 });
+// 고객 열람 확인(서버가 viewRead 를 줄 때만 동작). 첫 쪽 표시 + 화면 보임 + 손님 조작 후 1회만 알림. 실패해도 문서·서명에 영향 없음
+function viewReadInstall(cfg, tok) {
+  if (!cfg || typeof cfg.ticket !== 'string' || !cfg.ticket) return { rendered() {} };
+  let sent = false, rendered = false, touched = false;
+  const bot = /bot|crawler|spider|preview|facebookexternalhit|kakaotalk-scrap/i.test(navigator.userAgent || '');
+  const send = () => {
+    if (sent || bot || !rendered || !touched || document.visibilityState !== 'visible') return;
+    sent = true;
+    try { fetch(API_BASE, { method: 'POST', body: JSON.stringify({ a: 'viewread', token: tok, ticket: cfg.ticket, rendered: true, visible: true, interacted: true, bot: false }), keepalive: true, credentials: 'omit', cache: 'no-store', referrerPolicy: 'no-referrer' }).catch(() => {}); } catch (_) {}
+  };
+  const touch = e => { if (e.isTrusted) { touched = true; send(); } };
+  ['pointerdown', 'keydown', 'touchstart', 'wheel'].forEach(k => document.addEventListener(k, touch, { passive: true }));
+  document.addEventListener('visibilitychange', send);
+  return { rendered() { rendered = true; send(); } };
+}
 async function openDocument() {
   const values = new URLSearchParams(window.location.search).getAll('v');
   if (values.length !== 1 || !/^[a-f0-9]{64}$/.test(values[0])) { showError(); return; }
@@ -80,6 +95,7 @@ async function openDocument() {
     const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
     if (String.fromCharCode(...bytes.subarray(0, 5)) !== '%PDF-') throw new Error();
     clearTimeout(timeout);
+    const viewRead = viewReadInstall(data.viewRead, values[0]);
     await loadPdfJs();
     pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER;
     // PDF 내 외부 링크·스크립트·폰트 네트워크 로딩을 사용하지 않습니다.
@@ -110,6 +126,7 @@ async function openDocument() {
       pagesElement.appendChild(figure);
       await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
       page.cleanup();
+      if (number === 1) viewRead.rendered();
     }
     pdfBytes = bytes;
     saveButton.disabled = false;
