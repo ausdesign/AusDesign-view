@@ -10,4 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check inline script hashes and rejection cases
-        run: node tests/csp-hash.test.cjs
+        run: |
+          node tests/csp-hash.test.cjs
+          node tests/pdf-notes-boundary.test.cjs
