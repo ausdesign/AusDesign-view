@@ -12,7 +12,8 @@
 </head>
 <body>
 <header><h1 id="title">문서 열람</h1><button id="save" type="button" disabled>PDF 저장</button></header>
-<main><p id="status" role="status" aria-live="polite">문서를 불러오는 중입니다…</p><div id="pages" aria-label="PDF 문서"></div></main>
+<main><p id="status" role="status" aria-live="polite">문서를 불러오는 중입니다…</p><!-- 견적특이사항은 견적 PDF에 포함된 그대로 표시합니다. 계약 특약을 견적에 덧붙이지 않습니다. -->
+<div id="pages" aria-label="PDF 문서"></div></main>
 <script>
 'use strict';
 // CM이 이 한 곳에만 서버 주소를 설정합니다.
